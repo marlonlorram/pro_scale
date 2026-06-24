@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:pro_scale/src/pro_scale_core.dart';
+import 'package:pro_scale/src/pro_scale_scope.dart';
 
 class ProScaleInit extends StatefulWidget {
   final Widget child;
@@ -8,6 +9,7 @@ class ProScaleInit extends StatefulWidget {
   final double designHeight;
   final DesignOrientation designOrientation;
   final double maxScaleFactor;
+  final bool respectSystemTextScale;
 
   const ProScaleInit({
     super.key,
@@ -16,6 +18,7 @@ class ProScaleInit extends StatefulWidget {
     required this.designHeight,
     this.designOrientation = DesignOrientation.portrait,
     this.maxScaleFactor = 1.5,
+    this.respectSystemTextScale = true,
   });
 
   @override
@@ -24,11 +27,13 @@ class ProScaleInit extends StatefulWidget {
 
 class _ProScaleInitState extends State<ProScaleInit> {
   bool _initialized = false;
+  late Size _screenSize;
+  late TextScaler _textScaler;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _syncScreenSize();
+    _sync();
   }
 
   @override
@@ -37,28 +42,40 @@ class _ProScaleInitState extends State<ProScaleInit> {
     if (oldWidget.designWidth != widget.designWidth ||
         oldWidget.designHeight != widget.designHeight ||
         oldWidget.designOrientation != widget.designOrientation ||
-        oldWidget.maxScaleFactor != widget.maxScaleFactor) {
+        oldWidget.maxScaleFactor != widget.maxScaleFactor ||
+        oldWidget.respectSystemTextScale != widget.respectSystemTextScale) {
       _initialized = false;
-      _syncScreenSize();
+      _sync();
     }
   }
 
-  void _syncScreenSize() {
-    final Size size = MediaQuery.sizeOf(context);
+  void _sync() {
+    _screenSize = MediaQuery.sizeOf(context);
+    _textScaler = MediaQuery.textScalerOf(context);
+
+    final ProScaleCore core = ProScaleCore();
     if (_initialized) {
-      ProScaleCore().updateScreenSize(size);
+      core.updateScreenSize(_screenSize);
     } else {
-      ProScaleCore().init(
+      core.init(
         designWidth: widget.designWidth,
         designHeight: widget.designHeight,
-        screenSize: size,
+        screenSize: _screenSize,
         designOrientation: widget.designOrientation,
         maxScaleFactor: widget.maxScaleFactor,
+        respectSystemTextScale: widget.respectSystemTextScale,
       );
       _initialized = true;
     }
+    core.updateTextScaler(_textScaler);
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    return ProScaleScope(
+      screenSize: _screenSize,
+      textScaler: _textScaler,
+      child: widget.child,
+    );
+  }
 }
