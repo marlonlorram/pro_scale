@@ -66,8 +66,11 @@ class ProScaleCore {
   double get _effectiveDesignHeight =>
       _shouldSwapAxes ? _designWidth : _designHeight;
 
+  // Falls back to 1.0 when either dimension is unusable: a non-positive design
+  // size divides by zero, and a non-positive screen size (e.g. an unmeasured
+  // first frame) would otherwise scale everything to zero (invisible).
   double _rawScale(double screen, double design) =>
-      design <= 0 ? 1.0 : screen / design;
+      (screen <= 0 || design <= 0) ? 1.0 : screen / design;
 
   double get _rawScaleWidth => _rawScale(_screenWidth, _effectiveDesignWidth);
   double get _rawScaleHeight => _rawScale(_screenHeight, _effectiveDesignHeight);
